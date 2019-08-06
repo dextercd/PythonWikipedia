@@ -17,7 +17,7 @@ class IndexEntry:
 	article_name: str
 
 def get_file_size(f: typing.TextIO) -> int:
-	""" Gets file size without, restores the file position. """
+	""" Gets file size. This function restores the file position. """
 	restore = f.tell()
 	f.seek(0, 2)
 	ret = f.tell()
@@ -27,12 +27,12 @@ def get_file_size(f: typing.TextIO) -> int:
 def split_index_parts(line: str) -> typing.Tuple[str, str]:
 	""" Splits a string by the first ':' character.
 	The wikipedia index file is a file with lines formatted like this:
-	aaaaa:bbbbb:About C:\System32
+	aaaaa:bbbbb:C:\System32
 	Here the file offset is aaaaa, the page id is bbbbb, and the title is
 	C:\System32, note that the title can contain a colon.
 
 	this function takes the example line and returns this:
-	('aaaaa', 'bbbbb:About C:\System32')
+	('aaaaa', 'bbbbb:C:\System32')
 	So we extracted the first item, the second tuple element is the rest of the
 	string. Now we can directly put the second element into this function to
 	extract the last two items.
@@ -50,10 +50,10 @@ def parse_index_line(file_offset_page_id_article_name_nl: str) -> IndexEntry:
 
 
 def contains_substr_predicate(text: str):
-	""" Returns true for IndexEntries who's article name contains 'text'
-	This function is primarily intended for use in load_index, example usage:
+	""" Returns true for IndexEntries who's article name contains 'text'.
+	Example usage:
 
-	load_index(index_file, contains_substr_predicate('C++'))
+	wikidb.load_index(index_file, contains_substr_predicate('C++'))
 
 	this will return all article index entries who's article name contains C++.
 	"""
@@ -65,8 +65,7 @@ def contains_substr_predicate(text: str):
 def exact_match_smart_predicate(text: str):
 	""" Returns true for IndexEntries who's article name is 'text'.
 	The comparison is case insensitive if the 'text' is only lower case
-	characters, else it's a case sensitive search. This function is primarily
-	intended for use in load_index.
+	characters, else it's a case sensitive search.
 	"""
 	def ci_ret(entry: IndexEntry):
 		return text.lower() == entry.article_name.lower()
@@ -120,8 +119,9 @@ class WikiDb():
 		""" Loads IndexEntry entries from index_file
 		Changes the index_file's file position.
 
-		The index file is too big, so loading the full file is not a good idea,
-		instead this only returns entries that return true for the predicate.
+		The index file is too big, so storing the full file in ram is not a good
+		idea, instead this only stores entries that return true for the
+		predicate.
 		"""
 		self.index_file.seek(0)
 		entries = []
@@ -135,6 +135,8 @@ class WikiDb():
 	def load_index_single(self, predicate: typing.Callable[[IndexEntry], bool]) -> typing.List[IndexEntry]:
 		""" Loads IndexEntry entries from index_file
 		Changes the index_file's file position.
+
+		Similair to load_index, but stops at first match
 		"""
 		self.index_file.seek(0)
 		for index_entry_text in self.index_file:
